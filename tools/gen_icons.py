@@ -134,7 +134,7 @@ def main(out):
         h.append(f'extern const gfx_image_a4_t gfx_icon_{name};')
         sheet.paste((235, 240, 250), (4 + (i % 8)*40, 4 + (i//8)*40), im)
     h += ['', '#ifdef __cplusplus', '}', '#endif', '', '#endif /* GFX_ICONS_H_ */', '']
-    open(os.path.join(out, 'gfx_icons.c'), 'w', encoding='utf-8', newline='\n').write('\n'.join(c))
+    open(os.path.join(out, 'gfx_icons.c'), 'w', encoding='utf-8', newline='\n').write('\n'.join(c) + '\n')
     open(os.path.join(out, 'gfx_icons.h'), 'w', encoding='utf-8', newline='\n').write('\n'.join(h))
     sheet.resize((sheet.width*3, sheet.height*3), Image.NEAREST).save(os.path.join(out, 'icons_preview.png'))
     print(len(ICONS), 'icons')
