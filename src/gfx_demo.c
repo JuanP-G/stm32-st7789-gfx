@@ -186,7 +186,7 @@ static void gfx_demo_page_settings(void)
 	gfx_widget_list_item(0, 72, GFX_WIDTH, 34, &gfx_icon_bell, "Alerts", NULL, 0);
 	gfx_widget_switch(184, 76, 1);
 	gfx_widget_list_item(0, 106, GFX_WIDTH, 34, &gfx_icon_sun, "Brightness", NULL, 0);
-	gfx_widget_slider(112, 111, 118, 65, gfx_theme->surface);
+	gfx_widget_slider(138, 111, 92, 65, gfx_theme->surface);
 	gfx_widget_list_item(0, 140, GFX_WIDTH, 34, &gfx_icon_moon, "Night mode", NULL, 0);
 	gfx_widget_switch(184, 144, 0);
 

@@ -105,10 +105,10 @@ static void gfx_selftest_text(void)
 	};
 	gfx_fill_screen(GFX_BLACK);
 	gfx_text(8, 6,   "Sans 12: The quick brown fox", &gfx_font_sans_12, GFX_WHITE, GFX_BLACK);
-	gfx_text(8, 26,  "Sans 16: The quick brown fox", &gfx_font_sans_16, GFX_WHITE, GFX_BLACK);
+	gfx_text(8, 26,  "Sans 16: Quick brown fox", &gfx_font_sans_16, GFX_WHITE, GFX_BLACK);
 	gfx_text(8, 50,  "Sans 24: Quick fox", &gfx_font_sans_24, GFX_WHITE, GFX_BLACK);
-	gfx_text(8, 84,  "Bold 16: The quick brown fox", &gfx_font_sans_bold_16, GFX_ST_YELLOW, GFX_BLACK);
-	gfx_text(8, 108, "Bold 24: Quick fox", &gfx_font_sans_bold_24, GFX_ST_CYAN, GFX_BLACK);
+	gfx_text(8, 84,  "Bold 16: Quick fox", &gfx_font_sans_bold_16, GFX_ST_YELLOW, GFX_BLACK);
+	gfx_text(8, 108, "Bold 24: Fox", &gfx_font_sans_bold_24, GFX_ST_CYAN, GFX_BLACK);
 	gfx_text(8, 142, "12:45", &gfx_font_sans_bold_48, GFX_WHITE, GFX_BLACK);
 	for (int i = 0; i < 6; i++)
 		gfx_draw_icon(8 + i * 38, 202, icons[i], GFX_WHITE, GFX_BLACK);
