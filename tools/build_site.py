@@ -17,6 +17,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'site_src')
 OUT = os.path.join(ROOT, 'docs')
 SITE = 'https://juanp-g.github.io/stm32-st7789-gfx/'
+# IndexNow ownership key. It is public by design: search engines fetch it from
+# the site root to confirm that the submitted URLs belong to this host.
+INDEXNOW_KEY = '42bc971095ba7d2f1bab2abd2f46cddf'
 REPO = 'https://github.com/JuanP-G/stm32-st7789-gfx'
 OG_IMAGE = SITE + 'img/og-image.png'
 KEYWORDS = ('STM32 ST7789 library, FMC LCD driver, STM32F723E-DISCO, RGB565, embedded GUI in C, '
@@ -245,6 +248,7 @@ def main():
     write(os.path.join(OUT, 'assets', 'site.js'), SITE_JS)
     write(os.path.join(OUT, 'favicon.svg'), FAVICON)
     write(os.path.join(OUT, '.nojekyll'), '')
+    write(os.path.join(OUT, INDEXNOW_KEY + '.txt'), INDEXNOW_KEY)
     for p in PAGES:
         root = '../' if p['out'].startswith('es/') else ''
         write(os.path.join(OUT, p['out']), render(p, root))
