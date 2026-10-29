@@ -12,9 +12,8 @@ rasterised at 12, 16, 24 and 48 pixels into 4-bit anti-aliased bitmaps by
 permits use, copying, modification and redistribution, provided that the
 copyright and permission notices below are included in all copies.
 
-The derived bitmaps are distributed under the same terms. The fonts are not
-renamed because the bitmaps are not a font file: they are data tables inside
-a C library, and the names "Bitstream" and "Vera" are not used for them.
+The derived bitmaps are distributed under the same terms. The generated tables
+are named `gfx_font_sans_*`; none of the names contains "Bitstream" or "Vera".
 
 - Project: https://dejavu-fonts.github.io/
 - Licence text source: https://github.com/dejavu-fonts/dejavu-fonts/blob/master/LICENSE
