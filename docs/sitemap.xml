@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://juanp-g.github.io/stm32-st7789-gfx/</loc>
+    <lastmod>2026-10-29</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://juanp-g.github.io/stm32-st7789-gfx/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://juanp-g.github.io/stm32-st7789-gfx/es/"/>
+  </url>
+  <url>
+    <loc>https://juanp-g.github.io/stm32-st7789-gfx/getting-started.html</loc>
+    <lastmod>2026-10-29</lastmod>
+  </url>
+  <url>
+    <loc>https://juanp-g.github.io/stm32-st7789-gfx/architecture.html</loc>
+    <lastmod>2026-10-29</lastmod>
+  </url>
+  <url>
+    <loc>https://juanp-g.github.io/stm32-st7789-gfx/api.html</loc>
+    <lastmod>2026-10-29</lastmod>
+  </url>
+  <url>
+    <loc>https://juanp-g.github.io/stm32-st7789-gfx/testing.html</loc>
+    <lastmod>2026-10-29</lastmod>
+  </url>
+  <url>
+    <loc>https://juanp-g.github.io/stm32-st7789-gfx/es/</loc>
+    <lastmod>2026-10-29</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://juanp-g.github.io/stm32-st7789-gfx/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://juanp-g.github.io/stm32-st7789-gfx/es/"/>
+  </url>
+</urlset>

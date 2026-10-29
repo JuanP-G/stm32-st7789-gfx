@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture: Window and Burst Drawing for the ST7789 on STM32</title>
+<meta name="description" content="How the library draws: layered modules, one address window per run of pixels, a pixel burst, clipping, and a two-function hardware port.">
+<meta name="keywords" content="STM32 ST7789 library, FMC LCD driver, STM32F723E-DISCO, RGB565, embedded GUI in C, anti-aliased fonts for microcontrollers, host-testable">
+<meta name="author" content="Juan Pastrana">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2458d6">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://juanp-g.github.io/stm32-st7789-gfx/architecture.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="stm32-st7789-gfx">
+<meta property="og:title" content="Architecture: Window and Burst Drawing for the ST7789 on STM32">
+<meta property="og:description" content="How the library draws: layered modules, one address window per run of pixels, a pixel burst, clipping, and a two-function hardware port.">
+<meta property="og:url" content="https://juanp-g.github.io/stm32-st7789-gfx/architecture.html">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://juanp-g.github.io/stm32-st7789-gfx/img/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="stm32-st7789-gfx: graphics for ST7789 displays on STM32, with demo screens">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Architecture: Window and Burst Drawing for the ST7789 on STM32">
+<meta name="twitter:description" content="How the library draws: layered modules, one address window per run of pixels, a pixel burst, clipping, and a two-function hardware port.">
+<meta name="twitter:image" content="https://juanp-g.github.io/stm32-st7789-gfx/img/og-image.png">
+<meta name="twitter:image:alt" content="stm32-st7789-gfx: graphics for ST7789 displays on STM32, with demo screens">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">stm32-st7789-gfx</a>
+    <nav class="nav" aria-label="Main"><a href="index.html">Home</a><a href="getting-started.html">Getting started</a><a href="architecture.html" aria-current="page">Architecture</a><a href="api.html">API</a><a href="testing.html">Testing</a><a href="https://github.com/JuanP-G/stm32-st7789-gfx">GitHub</a><a class="lang" href="es/" hreflang="es" lang="es">Español</a><button class="theme-btn" id="theme-toggle" type="button" aria-label="Toggle light or dark theme">Theme</button></nav>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<div class="doc"><article><h1>Architecture</h1>
+<p class="lead">A small stack of modules, a single drawing strategy, and one narrow door to the hardware.</p>
+
+<h2 id="layers">Layers</h2>
+<p>Each module only calls the ones below it. The core is the only module that sends data to the port, so everything above it stays hardware-independent and can run against the PC model unchanged.</p>
+<figure class="diagram">
+  <img src="img/architecture.svg" width="760" height="520" alt="Layered architecture: application, widgets and demo, text, shapes and images, core, then the two port functions and the bus and controller" loading="lazy">
+  <figcaption>Layers of stm32-st7789-gfx. Dashed boxes are code you own: the application and the port.</figcaption>
+</figure>
+<div class="tablewrap"><table>
+  <thead><tr><th>Module</th><th>Header</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td>Port</td><td><code>gfx_port.h</code></td><td>Two functions you implement: <code>gfx_port_cmd()</code> and <code>gfx_port_data()</code>.</td></tr>
+    <tr><td>Core</td><td><code>gfx_core.h</code></td><td>Window, burst, clipping, rectangles, colour blending, gradients, shared types.</td></tr>
+    <tr><td>Shapes</td><td><code>gfx_shapes.h</code></td><td>Lines, rectangles, rounded rectangles, circles, rings, arcs, triangles, polygons, integer maths.</td></tr>
+    <tr><td>Text</td><td><code>gfx_text.h</code></td><td>UTF-8 decoding, glyph lookup, anti-aliased drawing, text boxes, integer to string.</td></tr>
+    <tr><td>Images</td><td><code>gfx_image.h</code></td><td>RGB565 images, 4-bit opacity icons, 1-bit bitmaps.</td></tr>
+    <tr><td>Fonts, icons</td><td><code>gfx_fonts.h</code>, <code>gfx_icons.h</code></td><td>Generated const data: six fonts and 32 icons.</td></tr>
+    <tr><td>Widgets</td><td><code>gfx_widgets.h</code></td><td>Stateless drawing functions that use the active theme.</td></tr>
+    <tr><td>Demo, self-test</td><td><code>gfx_demo.h</code>, <code>gfx_selftest.h</code></td><td>Seven demo pages and nine bring-up patterns. Optional.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="window-burst">Window and burst</h2>
+<p>The ST7789 keeps a write window: a rectangle of its frame memory. Once the window is set, each pixel written after the RAMWR command lands at the next position inside the window, row by row. The library exploits that everywhere.</p>
+<figure class="diagram">
+  <img src="img/window-burst.svg" width="760" height="440" alt="Window and burst: clip, set the window with 3 commands and 8 parameters, then stream the pixels" loading="lazy">
+  <figcaption>Setting the window costs 11 bus writes: three commands and eight parameters.</figcaption>
+</figure>
+<p>The cost model is simple:</p>
+<ul>
+  <li><b>Pixel by pixel:</b> 12 bus writes per pixel (CASET 1 + 4, RASET 1 + 4, RAMWR 1 + 1).</li>
+  <li><b>Window and burst:</b> 11 writes to set the window, then 1 write per pixel. A filled <i>w</i> x <i>h</i> rectangle costs <i>w</i> x <i>h</i> + 11 writes.</li>
+</ul>
+<p>A full-screen fill is therefore 57,611 writes instead of 691,200. Shapes that are not rectangles, such as circles and arcs, are painted as one run per row, so they pay 11 writes per row instead of 12 per pixel.</p>
+<figure class="diagram">
+  <img src="img/writes-comparison.svg" width="800" height="540" alt="Bar chart on a logarithmic axis comparing bus writes of window and burst against pixel by pixel for ten drawing operations" loading="lazy">
+  <figcaption>Measured on the PC model with <code>make bench</code>.</figcaption>
+</figure>
+
+<h2 id="clipping">Clipping</h2>
+<p><code>gfx_clip_rect()</code> trims a rectangle to the screen and reports whether anything is left. Every public primitive clips before it touches the port, so drawing partly or completely off screen is safe and never sends a pixel outside the window. The host tests count window violations and require zero.</p>
+
+<h2 id="text">Text</h2>
+<p>Fonts are proportional bitmaps with 4 bits of opacity per pixel, two pixels per byte. When you give a background colour, the library builds a 16-entry colour table between background and text and draws each glyph as one window the size of its cell, so the glyph and its background go out in a single burst. Without a background there is nothing to blend with, so the <code>_t</code> variants paint only pixels at 50 percent opacity or more, run by run.</p>
+<p>Strings are UTF-8. The decoder understands one- and two-byte sequences up to U+00FF and maps anything else to <code>?</code>.</p>
+
+<h2 id="shapes">Shapes without floating point</h2>
+<ul>
+  <li><b>Lines</b> use Bresenham, grouped into horizontal or vertical runs so each run is one burst.</li>
+  <li><b>Circles and rings</b> use an integer square root and the test <i>dx</i><sup>2</sup> + <i>dy</i><sup>2</sup> &le; <i>r</i><sup>2</sup> + <i>r</i>, which gives rounder results than the plain radius test.</li>
+  <li><b>Arcs</b> compare each pixel with the start and end directions using cross products, with 0 degrees pointing up and angles growing clockwise.</li>
+  <li><b>Polygons</b> are filled with the even-odd rule on a grid of 1/16 pixel, so concave shapes such as stars work. Thick lines are rotated rectangles plus a circle at each end.</li>
+  <li><b>Sine and cosine</b> come from a 91-entry table in Q14 fixed point.</li>
+</ul>
+
+<h2 id="widgets">Widgets</h2>
+<p>Widgets keep no state. You pass the value, and when it changes you call the function again. They draw over a flat colour from the active theme so text and icons blend exactly. Because they only call the layers below, they behave the same on the board and on the PC model.</p>
+
+<h2 id="port">The port</h2>
+<p>The whole hardware surface is two functions. After CASET or RASET, <code>gfx_port_data()</code> carries 8-bit parameters in the low byte; after RAMWR it carries 16-bit RGB565 pixels. See <a href="getting-started.html#port">Write the port</a> for FMC, SPI and 8-bit examples.</p>
+
+<h2 id="decisions">Design decisions</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Decision</th><th>Reason</th></tr></thead>
+  <tbody>
+    <tr><td>Integer arithmetic only</td><td>Runs on cores without an FPU, gives identical pixels on every host, and makes golden hashes stable.</td></tr>
+    <tr><td>No dynamic memory, no global drawing state beyond the active theme</td><td>Predictable memory use, nothing to initialise or free.</td></tr>
+    <tr><td>Two-function port</td><td>Keeps the library independent of HAL versions, buses and boards.</td></tr>
+    <tr><td>Text with a background fills the whole glyph cell</td><td>One window per glyph is far cheaper than a window per run, and anti-aliasing needs a known background anyway.</td></tr>
+    <tr><td>Fixed 240 x 240 geometry</td><td>Keeps clipping and widgets simple. See the <a href="getting-started.html#limits">known limits</a>.</td></tr>
+    <tr><td>Generated data in the repository</td><td>Fonts and icons are produced by scripts in <code>tools/</code> and committed, so a build needs no Python and no font files.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="single-header">Single-header build</h2>
+<p><code>tools/make_single_header.py</code> concatenates the headers and sources into <code>single_header/lcd_gfx.h</code>, in the style of the stb libraries. The declarations are always visible; the implementation is compiled only where <code>GFX_IMPLEMENTATION</code> is defined. A test links one translation unit with the implementation and another without it, runs the whole suite on that build, and checks that every demo page hashes to the same value as the multi-file build.</p>
+</article><nav class="toc" aria-label="On this page"><b>On this page</b><a href="#layers">Layers</a><a href="#window-burst">Window and burst</a><a href="#clipping">Clipping</a><a href="#text">Text</a><a href="#shapes">Shapes without floating point</a><a href="#widgets">Widgets</a><a href="#port">The port</a><a href="#decisions">Design decisions</a><a href="#single-header">Single-header build</a></nav></div>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="wrap"><span>MIT License. Fonts derived from DejaVu Sans: see <a href="https://github.com/JuanP-G/stm32-st7789-gfx/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</span><a href="https://github.com/JuanP-G/stm32-st7789-gfx">GitHub</a><a href="https://github.com/JuanP-G/stm32-st7789-gfx/blob/main/CHANGELOG.md">Changelog</a></div>
+</footer>
+<script src="assets/site.js" defer></script>
+</body>
+</html>

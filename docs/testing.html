@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing: A Host-Testable Embedded GUI Library in C</title>
+<meta name="description" content="Three levels of testing: a PC controller model with golden pixel hashes, board test patterns, and integration. Includes the make test pipeline.">
+<meta name="keywords" content="STM32 ST7789 library, FMC LCD driver, STM32F723E-DISCO, RGB565, embedded GUI in C, anti-aliased fonts for microcontrollers, host-testable">
+<meta name="author" content="Juan Pastrana">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2458d6">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://juanp-g.github.io/stm32-st7789-gfx/testing.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="stm32-st7789-gfx">
+<meta property="og:title" content="Testing: A Host-Testable Embedded GUI Library in C">
+<meta property="og:description" content="Three levels of testing: a PC controller model with golden pixel hashes, board test patterns, and integration. Includes the make test pipeline.">
+<meta property="og:url" content="https://juanp-g.github.io/stm32-st7789-gfx/testing.html">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://juanp-g.github.io/stm32-st7789-gfx/img/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="stm32-st7789-gfx: graphics for ST7789 displays on STM32, with demo screens">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Testing: A Host-Testable Embedded GUI Library in C">
+<meta name="twitter:description" content="Three levels of testing: a PC controller model with golden pixel hashes, board test patterns, and integration. Includes the make test pipeline.">
+<meta name="twitter:image" content="https://juanp-g.github.io/stm32-st7789-gfx/img/og-image.png">
+<meta name="twitter:image:alt" content="stm32-st7789-gfx: graphics for ST7789 displays on STM32, with demo screens">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">stm32-st7789-gfx</a>
+    <nav class="nav" aria-label="Main"><a href="index.html">Home</a><a href="getting-started.html">Getting started</a><a href="architecture.html">Architecture</a><a href="api.html">API</a><a href="testing.html" aria-current="page">Testing</a><a href="https://github.com/JuanP-G/stm32-st7789-gfx">GitHub</a><a class="lang" href="es/" hreflang="es" lang="es">Español</a><button class="theme-btn" id="theme-toggle" type="button" aria-label="Toggle light or dark theme">Theme</button></nav>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<div class="doc"><article><h1>Testing</h1>
+<p class="lead">Embedded graphics code is slow to debug on a board. This project moves almost all of the checking to a PC, then gives you patterns to confirm the wiring, and finally a short integration checklist.</p>
+
+<h2 id="levels">Three levels</h2>
+<div class="grid">
+  <div class="card"><h3>1. On the PC</h3><p>A model of the ST7789 receives the exact bus writes the library produces. Tests check pixels, window violations and cost. No hardware needed.</p></div>
+  <div class="card"><h3>2. On the board</h3><p>Nine test patterns make wiring and configuration faults obvious: swapped colours, mirroring, offsets, noise.</p></div>
+  <div class="card"><h3>3. Integration</h3><p>Your port, your init sequence and your UI together: timing, the demo loop, and a pixel comparison with the PC.</p></div>
+</div>
+
+<h2 id="pc">Level 1: tests on the PC</h2>
+<p>The model in <code>tests/host/sim.c</code> implements CASET, RASET and RAMWR as the datasheet describes them. It keeps a 240 x 320 frame memory, advances the write position inside the window, and counts every command and data write. Any pixel sent outside the window or the memory is counted as a violation, and the tests require zero.</p>
+<pre><code>make test</code></pre>
+<p>One command runs everything below. It needs <code>make</code>, a C compiler and Python 3. Clang, the Arm cross-compiler and Pillow are optional locally; CI runs them all.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Step</th><th>What it checks</th></tr></thead>
+  <tbody>
+    <tr><td><code>header-check</code></td><td>The committed <code>single_header/lcd_gfx.h</code> matches what the generator produces from the sources.</td></tr>
+    <tr><td><code>host</code></td><td>56 library checks (geometry, clipping, text, images, widgets) plus 13 self-test checks, on the multi-file build.</td></tr>
+    <tr><td><code>single</code></td><td>The same 69 checks on the single-header build, linked from two translation units so duplicate symbols would show up.</td></tr>
+    <tr><td><code>equiv</code></td><td>Pixel equivalence: for each of the 16 demo and self-test pages, an FNV-1a hash of the 240 x 240 frame must be identical in the multi-file build, the single-header build and <code>tests/golden/pages.golden</code>.</td></tr>
+    <tr><td><code>bench</code></td><td>Bus writes per primitive against pixel by pixel; fails if any multi-pixel primitive costs as much.</td></tr>
+    <tr><td><code>strict</code></td><td><code>-std=c99 -Wall -Wextra -pedantic -Werror</code> with gcc over the library, the single header and the tests.</td></tr>
+    <tr><td><code>clang</code></td><td>The same with clang. Skipped, with a message, when clang is not installed.</td></tr>
+    <tr><td><code>arm</code></td><td>Cross-compile for Cortex-M7 with <code>arm-none-eabi-gcc -mcpu=cortex-m7 -mthumb -Os</code> and print the object sizes. Skipped when the compiler is missing.</td></tr>
+    <tr><td><code>site</code></td><td>Links, anchors, titles, descriptions, canonical URLs, JSON-LD and the social image of this website.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="golden">Golden pixel hashes</h3>
+<p>Every page is drawn on a cleared frame memory and hashed with 64-bit FNV-1a over the visible 240 x 240 pixels, row by row, each pixel as two bytes with the high byte first, so the value does not depend on the host's byte order. The file stores one line per page: set, index, name, hash and the number of bus writes.</p>
+<pre><code>demo 3 "Panel" 00c8ebdc6ce4bd2e 157844
+selftest 6 "Solid red" 87249f08992f2325 57611</code></pre>
+<p>A refactor that changes a single pixel changes a hash, and the test fails. When you change what a page draws on purpose, regenerate the file with <code>make golden</code> and explain the reason in the pull request.</p>
+
+<h3 id="bench">Benchmark</h3>
+<p><code>make bench</code> measures bus writes on the model. A pixel-by-pixel driver sends 12 writes per pixel, so the comparison column is the number of pixels painted times 12.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Primitive</th><th>Pixels</th><th>Bus writes</th><th>Pixel by pixel</th><th>Ratio</th></tr></thead>
+  <tbody>
+    <tr><td>One pixel</td><td>1</td><td>12</td><td>12</td><td>1.0x</td></tr>
+    <tr><td>Horizontal line, 200 px</td><td>200</td><td>211</td><td>2,400</td><td>11.4x</td></tr>
+    <tr><td>Diagonal line, 220 x 80</td><td>221</td><td>1,112</td><td>2,652</td><td>2.4x</td></tr>
+    <tr><td>Filled rectangle, 100 x 60</td><td>6,000</td><td>6,011</td><td>72,000</td><td>12.0x</td></tr>
+    <tr><td>Filled circle, radius 60</td><td>11,513</td><td>12,844</td><td>138,156</td><td>10.8x</td></tr>
+    <tr><td>Arc, radius 80, 270 degrees</td><td>4,847</td><td>7,355</td><td>58,164</td><td>7.9x</td></tr>
+    <tr><td>Text, 12 characters, 16 px font</td><td>1,786</td><td>1,918</td><td>21,432</td><td>11.2x</td></tr>
+    <tr><td>Icon, 32 x 32</td><td>1,024</td><td>1,035</td><td>12,288</td><td>11.9x</td></tr>
+    <tr><td>Image, 120 x 80</td><td>9,600</td><td>9,611</td><td>115,200</td><td>12.0x</td></tr>
+    <tr><td>Full screen</td><td>57,600</td><td>57,611</td><td>691,200</td><td>12.0x</td></tr>
+    <tr><td>Dashboard demo page</td><td>145,645</td><td>157,844</td><td>1,747,740</td><td>11.1x</td></tr>
+  </tbody>
+</table></div>
+<p>The pixel counts include overdraw, because the library writes every pixel it paints, so the dashboard page paints more pixels than the screen holds.</p>
+
+<h3 id="ci">Continuous integration</h3>
+<p>The GitHub Actions workflow runs <code>make test</code> with gcc and with clang, installs the Arm cross-compiler so the Cortex-M7 build really runs, uploads the rendered screenshots as an artifact, and publishes this site from the <code>docs/</code> folder to GitHub Pages.</p>
+
+<h2 id="board">Level 2: test patterns on the board</h2>
+<p>Call <code>gfx_selftest_page(n)</code> for each page and compare what you see with the expectation below.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Page</th><th>Pattern</th><th>What you should see</th><th>If it is wrong</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>Colour bars</td><td>Eight bars in the order red, green, blue, cyan, magenta, yellow, white, black, with the letters under them.</td><td>Red and blue swapped: BGR bit or byte order.</td></tr>
+    <tr><td>1</td><td>Gray ramp</td><td>Sixteen clean steps above, a smooth ramp below, no tint.</td><td>Banding or colour cast: pixel format or missing data bits.</td></tr>
+    <tr><td>2</td><td>Frame and corners</td><td>A white frame touching all four edges; red top-left, green top-right, blue bottom-left, yellow bottom-right.</td><td>Mirrored corners: MADCTL. Missing edge or a shift: window offset.</td></tr>
+    <tr><td>3</td><td>Grid, cross, circle</td><td>A square 20 px grid, a centred cross, round circles and two diagonals corner to corner.</td><td>Ellipses or skew: wrong window or resolution.</td></tr>
+    <tr><td>4</td><td>Nested rectangles</td><td>Twelve concentric frames, 10 px apart, white, red, white, blue.</td><td>Uneven margins: wrong window size; wrapped lines: bad window end.</td></tr>
+    <tr><td>5</td><td>Text and icons</td><td>Every font readable and unmirrored, six icons at the bottom.</td><td>Mirrored text: MADCTL. Question marks: source not UTF-8.</td></tr>
+    <tr><td>6, 7, 8</td><td>Solid red, green, blue</td><td>One perfectly flat colour each.</td><td>Speckles or stuck bits: timing or a bad data line.</td></tr>
+  </tbody>
+</table></div>
+<p>The <a href="getting-started.html#troubleshooting">troubleshooting table</a> lists the causes and fixes. The patterns are also part of the PC tests, so you can compare your panel with <a href="img/screens/selftest_sheet.png">the rendered reference sheet</a>.</p>
+
+<h2 id="integration">Level 3: integration</h2>
+<ol>
+  <li><b>Run the demo loop</b> from <a href="getting-started.html#first">Draw the first screen</a> and compare each page with the screenshots on the <a href="index.html#gallery">home page</a>.</li>
+  <li><b>Time a full-screen fill.</b> Toggle a GPIO around <code>gfx_fill_screen()</code> and measure it. The result is dominated by 57,600 calls to <code>gfx_port_data()</code>, so it tells you directly how fast your port and your FMC timings are.</li>
+  <li><b>Render your own screens on the PC.</b> Link your UI code against the library and <code>tests/host/sim.c</code> and hash it the way <code>pages.c</code> does. A UI change then shows up in review as a hash change.</li>
+  <li><b>Check the cost of your redraws.</b> Count writes with the model before you look at the board: a screen that redraws widgets every frame is easy to spot in the numbers.</li>
+  <li><b>Wire in input.</b> Widgets are stateless drawing functions, so connect touch or buttons in your own code and call the widget again with the new value.</li>
+</ol>
+</article><nav class="toc" aria-label="On this page"><b>On this page</b><a href="#levels">Three levels</a><a href="#pc">Level 1: tests on the PC</a><a href="#board">Level 2: test patterns on the board</a><a href="#integration">Level 3: integration</a></nav></div>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="wrap"><span>MIT License. Fonts derived from DejaVu Sans: see <a href="https://github.com/JuanP-G/stm32-st7789-gfx/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</span><a href="https://github.com/JuanP-G/stm32-st7789-gfx">GitHub</a><a href="https://github.com/JuanP-G/stm32-st7789-gfx/blob/main/CHANGELOG.md">Changelog</a></div>
+</footer>
+<script src="assets/site.js" defer></script>
+</body>
+</html>

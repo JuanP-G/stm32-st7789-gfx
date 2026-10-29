@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://juanp-g.github.io/stm32-st7789-gfx/sitemap.xml
