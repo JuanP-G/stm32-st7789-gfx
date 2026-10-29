@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" role="img" aria-labelledby="t d">
+  <title id="t">FMC connection with A0 selecting command or data</title>
+  <desc id="d">The STM32 FMC drives a 16-bit data bus, chip select, write and read strobes to the ST7789. The address line A0 is wired to the controller D/CX pin: a write with A0 low is a command, a write with A0 high is a data word.</desc>
+  <style>
+    :root { --bg:#ffffff; --box:#eef3fb; --ln:#9db0cc; --tx:#17202e; --dim:#566379; --acc:#2f6fed; --accbg:#dce8ff; --warn:#b4570a; --warnbg:#fdf0e1; --wire:#6b7a93; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#10141c; --box:#1a2230; --ln:#3b4a63; --tx:#e7ecf5; --dim:#97a3b8; --acc:#6fa3ff; --accbg:#1c2c4d; --warn:#f0a24c; --warnbg:#35271a; --wire:#8393ad; } }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: var(--tx); font-size: 14px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+    .bg { fill: var(--bg); }
+    .box { fill: var(--box); stroke: var(--ln); stroke-width: 1.5; }
+    .acc { fill: var(--accbg); stroke: var(--acc); stroke-width: 2; }
+    .warn { fill: var(--warnbg); stroke: var(--warn); stroke-width: 2; }
+    .w { stroke: var(--wire); stroke-width: 2; fill: none; }
+    .wa { stroke: var(--acc); stroke-width: 3; fill: none; }
+    .bus { stroke: var(--wire); stroke-width: 6; fill: none; }
+    .h { font-weight: 600; font-size: 15px; }
+    .s { fill: var(--dim); font-size: 12.5px; }
+    .c { text-anchor: middle; }
+    .r { text-anchor: end; }
+  </style>
+  <rect class="bg" width="760" height="470"/>
+
+  <rect class="box" x="20" y="20" width="230" height="320" rx="12"/>
+  <text class="h c" x="135" y="48">STM32 (FMC)</text>
+  <text class="s c" x="135" y="66">16-bit, NOR/SRAM mode</text>
+
+  <rect class="box" x="510" y="20" width="230" height="320" rx="12"/>
+  <text class="h c" x="625" y="48">ST7789 panel</text>
+  <text class="s c" x="625" y="66">8080 parallel interface</text>
+
+  <!-- data bus -->
+  <path class="bus" d="M250 110 L510 110"/>
+  <text class="mono" x="262" y="98">FMC_D[15:0]</text>
+  <text class="mono r" x="498" y="98">D[15:0]</text>
+  <text class="s c" x="380" y="132">16 data lines, both directions</text>
+
+  <!-- control -->
+  <path class="w" d="M250 168 L510 168"/>
+  <text class="mono" x="262" y="162">FMC_NEx</text><text class="mono r" x="498" y="162">CS</text>
+  <path class="w" d="M250 200 L510 200"/>
+  <text class="mono" x="262" y="194">FMC_NWE</text><text class="mono r" x="498" y="194">WR</text>
+  <path class="w" d="M250 232 L510 232"/>
+  <text class="mono" x="262" y="226">FMC_NOE</text><text class="mono r" x="498" y="226">RD</text>
+  <path class="wa" d="M250 264 L510 264"/>
+  <text class="mono" x="262" y="258" style="fill:var(--acc);font-weight:700">FMC_A0</text><text class="mono r" x="498" y="258" style="fill:var(--acc);font-weight:700">D/CX</text>
+  <path class="w" d="M250 296 L510 296" stroke-dasharray="6 4"/>
+  <text class="mono" x="262" y="290">GPIO</text><text class="mono r" x="498" y="290">RESET</text>
+  <path class="w" d="M250 324 L510 324" stroke-dasharray="6 4"/>
+  <text class="mono" x="262" y="318">GPIO / PWM</text><text class="mono r" x="498" y="318">backlight</text>
+
+  <!-- address decode -->
+  <rect class="warn" x="20" y="366" width="350" height="84" rx="10"/>
+  <text class="h" x="36" y="392">Command: A0 = 0</text>
+  <text class="mono" x="36" y="414">*(volatile uint16_t *)BASE = cmd;</text>
+  <text class="s" x="36" y="436">gfx_port_cmd()</text>
+
+  <rect class="acc" x="390" y="366" width="350" height="84" rx="10"/>
+  <text class="h" x="406" y="392">Data: A0 = 1</text>
+  <text class="mono" x="406" y="414">*(volatile uint16_t *)(BASE + 2) = d;</text>
+  <text class="s" x="406" y="436">gfx_port_data()</text>
+</svg>

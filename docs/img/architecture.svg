@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" role="img" aria-labelledby="t d">
+  <title id="t">Layered architecture of stm32-st7789-gfx</title>
+  <desc id="d">Your application sits on top of widgets, text and images, shapes, and the core. The core talks to the hardware only through gfx_port_cmd and gfx_port_data, which you implement for FMC, SPI or an 8-bit bus, ending at the ST7789 controller.</desc>
+  <style>
+    :root { --bg:#ffffff; --box:#eef3fb; --box2:#e3ebf7; --ln:#9db0cc; --tx:#17202e; --dim:#566379; --acc:#2f6fed; --accbg:#dce8ff; --warn:#b4570a; --warnbg:#fdf0e1; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#10141c; --box:#1a2230; --box2:#222c3e; --ln:#3b4a63; --tx:#e7ecf5; --dim:#97a3b8; --acc:#6fa3ff; --accbg:#1c2c4d; --warn:#f0a24c; --warnbg:#35271a; } }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: var(--tx); font-size: 14px; }
+    .bg { fill: var(--bg); }
+    .box { fill: var(--box); stroke: var(--ln); stroke-width: 1.5; }
+    .box2 { fill: var(--box2); stroke: var(--ln); stroke-width: 1.5; }
+    .acc { fill: var(--accbg); stroke: var(--acc); stroke-width: 2; }
+    .you { fill: var(--warnbg); stroke: var(--warn); stroke-width: 2; stroke-dasharray: 6 4; }
+    .arrow { stroke: var(--dim); stroke-width: 2; fill: none; marker-end: url(#ah); }
+    .h { font-weight: 600; font-size: 15px; }
+    .s { fill: var(--dim); font-size: 12.5px; }
+    .c { text-anchor: middle; }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8a97ad"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="760" height="520"/>
+
+  <!-- Application -->
+  <rect class="you" x="20" y="16" width="720" height="58" rx="10"/>
+  <text class="h c" x="380" y="40">Your application</text>
+  <text class="s c" x="380" y="60">main.c, UI logic, touch and button handling</text>
+
+  <!-- Level 1 -->
+  <rect class="box" x="20" y="102" width="470" height="62" rx="10"/>
+  <text class="h c" x="255" y="128">Widgets</text>
+  <text class="s c" x="255" y="148">panel, button, switch, slider, ring, chart, list, tab bar, themes</text>
+  <rect class="box" x="510" y="102" width="230" height="62" rx="10"/>
+  <text class="h c" x="625" y="128">Demo and self-test</text>
+  <text class="s c" x="625" y="148">optional pages, bring-up patterns</text>
+
+  <!-- Level 2 -->
+  <rect class="box" x="20" y="194" width="225" height="62" rx="10"/>
+  <text class="h c" x="132" y="220">Text</text>
+  <text class="s c" x="132" y="240">UTF-8, anti-aliased glyphs</text>
+  <rect class="box" x="265" y="194" width="225" height="62" rx="10"/>
+  <text class="h c" x="377" y="220">Shapes</text>
+  <text class="s c" x="377" y="240">lines, circles, arcs, polygons</text>
+  <rect class="box" x="510" y="194" width="230" height="62" rx="10"/>
+  <text class="h c" x="625" y="220">Images and icons</text>
+  <text class="s c" x="625" y="240">RGB565, 1-bit, 4-bit opacity</text>
+
+  <!-- Data -->
+  <rect class="box2" x="20" y="286" width="225" height="40" rx="8"/>
+  <text class="s c" x="132" y="311">Data: fonts (about 141 KB), 32 icons</text>
+
+  <!-- Core -->
+  <rect class="acc" x="20" y="352" width="720" height="62" rx="10"/>
+  <text class="h c" x="380" y="378">Core</text>
+  <text class="s c" x="380" y="398">clip to screen, set window (CASET, RASET, RAMWR), burst of pixels, colour blend</text>
+
+  <!-- Port -->
+  <rect class="you" x="20" y="442" width="470" height="62" rx="10"/>
+  <text class="h c" x="255" y="468">Port: you write these two functions</text>
+  <text class="s c" x="255" y="488">gfx_port_cmd(uint8_t)    gfx_port_data(uint16_t)</text>
+
+  <!-- Hardware -->
+  <rect class="box2" x="510" y="442" width="230" height="62" rx="10"/>
+  <text class="h c" x="625" y="468">Bus and controller</text>
+  <text class="s c" x="625" y="488">FMC, SPI or 8-bit bus, ST7789</text>
+
+  <!-- Arrows -->
+  <path class="arrow" d="M255 74 L255 100"/>
+  <path class="arrow" d="M625 74 L625 100"/>
+  <path class="arrow" d="M132 164 L132 192"/>
+  <path class="arrow" d="M377 164 L377 192"/>
+  <path class="arrow" d="M625 164 L625 192"/>
+  <path class="arrow" d="M132 256 L132 284"/>
+  <path class="arrow" d="M377 256 L377 350"/>
+  <path class="arrow" d="M625 256 L625 350"/>
+  <path class="arrow" d="M132 326 L132 350"/>
+  <path class="arrow" d="M255 414 L255 440"/>
+  <path class="arrow" d="M492 473 L508 473"/>
+</svg>

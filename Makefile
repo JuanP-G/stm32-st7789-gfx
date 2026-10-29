@@ -38,7 +38,7 @@ MULTI_SRC  := $(LIB_SRC) $(TESTDIR)/sim.c
 SINGLE_SRC := $(TESTDIR)/single_impl.c $(TESTDIR)/sim.c
 SINGLE_INC := -Isingle_header -Itests/host -DUSE_SINGLE_HEADER
 
-.PHONY: all test golden shots clean header header-check host single equiv bench strict clang arm site
+.PHONY: all test golden shots diagrams clean header header-check host single equiv bench strict clang arm site
 
 all: test
 
@@ -90,7 +90,7 @@ equiv: $(B)/pages_multi$(EXE) $(B)/pages_single$(EXE)
 	@echo "equivalence OK: $$(wc -l < $(B)/pages_multi.txt) pages identical"
 
 golden: $(B)/pages_multi$(EXE)
-	./$(B)/pages_multi$(EXE) hash | tr -d '' > tests/golden/pages.golden
+	./$(B)/pages_multi$(EXE) hash | tr -d '\015' > tests/golden/pages.golden
 	@echo "wrote tests/golden/pages.golden"
 
 # ---- (c) benchmark ----
@@ -144,6 +144,11 @@ shots: $(B)/pages_multi$(EXE)
 	@mkdir -p $(B)/ppm
 	./$(B)/pages_multi$(EXE) render $(B)/ppm
 	$(PYTHON) tools/ppm2png.py $(B)/ppm assets/pages
+
+# ---- chart drawn from measured numbers ----
+diagrams: $(B)/bench$(EXE)
+	./$(B)/bench$(EXE) --csv | tr -d '\015' > $(B)/bench.csv
+	$(PYTHON) tools/make_bench_svg.py $(B)/bench.csv docs/img/writes-comparison.svg
 
 clean:
 	rm -rf $(B)
