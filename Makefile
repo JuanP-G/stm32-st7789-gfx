@@ -85,12 +85,12 @@ equiv: $(B)/pages_multi$(EXE) $(B)/pages_single$(EXE)
 	@echo "== pixel equivalence (multi-file vs single header vs golden)"
 	./$(B)/pages_multi$(EXE) hash > $(B)/pages_multi.txt
 	./$(B)/pages_single$(EXE) hash > $(B)/pages_single.txt
-	diff -u $(B)/pages_multi.txt $(B)/pages_single.txt
-	diff -u tests/golden/pages.golden $(B)/pages_multi.txt
+	diff -u --strip-trailing-cr $(B)/pages_multi.txt $(B)/pages_single.txt
+	diff -u --strip-trailing-cr tests/golden/pages.golden $(B)/pages_multi.txt
 	@echo "equivalence OK: $$(wc -l < $(B)/pages_multi.txt) pages identical"
 
 golden: $(B)/pages_multi$(EXE)
-	./$(B)/pages_multi$(EXE) hash > tests/golden/pages.golden
+	./$(B)/pages_multi$(EXE) hash | tr -d '' > tests/golden/pages.golden
 	@echo "wrote tests/golden/pages.golden"
 
 # ---- (c) benchmark ----
