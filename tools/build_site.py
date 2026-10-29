@@ -56,6 +56,8 @@ PAGES = [
          desc='Biblioteca en C para pantallas ST7789 en STM32: formas, fuentes suavizadas, iconos y widgets '
               'por FMC, SPI o bus de 8 bits. Solo enteros y probada en el PC.'),
 ]
+# Google Search Console ownership file. Keep it: removing it drops the verification.
+GOOGLE_VERIFICATION = 'google820eba4849d3650c.html'
 
 SITE_JS = '''(function () {
   var root = document.documentElement;
@@ -249,6 +251,7 @@ def main():
     write(os.path.join(OUT, 'favicon.svg'), FAVICON)
     write(os.path.join(OUT, '.nojekyll'), '')
     write(os.path.join(OUT, INDEXNOW_KEY + '.txt'), INDEXNOW_KEY)
+    write(os.path.join(OUT, GOOGLE_VERIFICATION), 'google-site-verification: ' + GOOGLE_VERIFICATION)
     for p in PAGES:
         root = '../' if p['out'].startswith('es/') else ''
         write(os.path.join(OUT, p['out']), render(p, root))

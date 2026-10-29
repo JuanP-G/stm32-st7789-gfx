@@ -110,7 +110,7 @@ def page_files():
     out = []
     for dirpath, _, names in os.walk(DOCS):
         for n in names:
-            if n.endswith('.html'):
+            if n.endswith('.html') and not n.startswith('google'):  # search console ownership files are not pages
                 out.append(os.path.join(dirpath, n))
     return sorted(out)
 
