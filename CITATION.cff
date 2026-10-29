@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this library in your work, please cite it as below."
+title: "stm32-st7789-gfx: a portable, host-testable C graphics library for ST7789 displays on STM32"
+type: software
+authors:
+  - family-names: "Pastrana"
+    given-names: "Juan"
+    alias: "JuanP-G"
+repository-code: "https://github.com/JuanP-G/stm32-st7789-gfx"
+url: "https://juanp-g.github.io/stm32-st7789-gfx/"
+license: MIT
+version: 1.0.0
+date-released: "2026-10-29"
+keywords:
+  - STM32
+  - ST7789
+  - FMC
+  - RGB565
+  - embedded GUI
+  - anti-aliased fonts
+  - host-testable
+abstract: >-
+  Portable C99 graphics library for ST7789 panels on STM32 microcontrollers
+  (16-bit parallel FMC, RGB565, 240 x 240): shapes, anti-aliased text, icons,
+  images and widgets. It paints through an address window and a pixel burst,
+  uses integer arithmetic only, and talks to the hardware through two
+  functions. Every drawing path is tested on a PC against a controller model.
