@@ -1,0 +1,16 @@
+demo 0 "Shapes" 4218f3d9c43af7e4 122598
+demo 1 "Text" e7690b3468408d2d 103953
+demo 2 "Icons" 03c1fa3470841566 100405
+demo 3 "Panel" 00c8ebdc6ce4bd2e 157844
+demo 4 "Settings" 09a25c3e3a8cbf86 136591
+demo 5 "Light theme" 377bf4b10f893e72 157209
+demo 6 "Images" d7780dbd935abe25 106139
+selftest 0 "Color bars" cd2e21b8081ab8cb 59916
+selftest 1 "Gray ramp" 8100fd981655125c 64412
+selftest 2 "Frame and corners" 6d462fec8bf54c39 72664
+selftest 3 "Grid, cross, circle" b2452b7b8fdcdccd 77955
+selftest 4 "Nested rectangles" 37c86f5464999d25 260132
+selftest 5 "Text and icons" 202210a06822e286 94625
+selftest 6 "Solid red" 87249f08992f2325 57611
+selftest 7 "Solid green" 730aaee960fa8f25 57611
+selftest 8 "Solid blue" 1707871357c48725 57611
