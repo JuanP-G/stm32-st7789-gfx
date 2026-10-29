@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: make test (${{ matrix.cc }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang gcc-arm-none-eabi python3-pil
+
+      - name: Show tool versions
+        run: |
+          ${{ matrix.cc }} --version | head -n 1
+          arm-none-eabi-gcc --version | head -n 1
+          python3 --version
+
+      - name: Run the full test suite
+        run: make test CC=${{ matrix.cc }}
+
+      - name: Generated files are up to date
+        if: matrix.cc == 'gcc'
+        run: |
+          make header docs
+          git diff --exit-code -- single_header docs
+
+      - name: Render screenshots
+        if: matrix.cc == 'gcc'
+        run: make shots
+
+      - name: Upload screenshots
+        if: matrix.cc == 'gcc'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: assets/pages/*.png
+          if-no-files-found: error
+
+  deploy-pages:
+    name: Publish the website
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
