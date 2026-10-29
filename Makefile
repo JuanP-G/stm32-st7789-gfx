@@ -38,11 +38,11 @@ MULTI_SRC  := $(LIB_SRC) $(TESTDIR)/sim.c
 SINGLE_SRC := $(TESTDIR)/single_impl.c $(TESTDIR)/sim.c
 SINGLE_INC := -Isingle_header -Itests/host -DUSE_SINGLE_HEADER
 
-.PHONY: all test golden shots diagrams clean header header-check host single equiv bench strict clang arm site docs og-image
+.PHONY: all test golden shots diagrams clean header header-check host single equiv bench strict clang arm examples site docs og-image
 
 all: test
 
-test: header-check host single equiv bench strict clang arm site
+test: header-check host single equiv bench strict clang arm examples site
 	@echo
 	@echo "make test: all checks passed"
 
@@ -133,6 +133,17 @@ arm: | $(B)
 		$(ARMSIZE) $(B)/arm_*.o; \
 		echo "arm OK"; \
 	else echo "== $(ARMGCC) not found: skipped (CI runs it)"; fi
+
+# ---- examples: the documented code must keep compiling ----
+$(B)/host_quickstart$(EXE): examples/host_quickstart.c $(MULTI_SRC) | $(B)
+	$(CC) $(CFLAGS) $(INC) $^ -o $@ $(LDLIBS)
+
+examples: $(B)/host_quickstart$(EXE)
+	@echo "== examples"
+	./$(B)/host_quickstart$(EXE)
+	@for f in examples/port_fmc.c examples/port_spi.c examples/port_8bit.c; do \
+		$(CC) $(STRICT) -Iinclude -c $$f -o $(B)/strict.o || exit 1; done
+	@echo "examples OK"
 
 # ---- web ----
 docs:
