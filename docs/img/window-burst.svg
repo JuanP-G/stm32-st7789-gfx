@@ -30,8 +30,8 @@
 
   <rect class="acc" x="16" y="104" width="360" height="132" rx="10"/>
   <text class="h" x="32" y="130">2. Set the window once: 11 bus writes</text>
-  <text class="mono" x="32" y="154">cmd  0x2A  CASET</text><text class="mono s" x="200" y="154">+ x0 hi, x0 lo, x1 hi, x1 lo</text>
-  <text class="mono" x="32" y="176">cmd  0x2B  RASET</text><text class="mono s" x="200" y="176">+ y0 hi, y0 lo, y1 hi, y1 lo</text>
+  <text class="mono" x="32" y="154">cmd  0x2A  CASET</text><text class="mono s" x="196" y="154">+ x0 hi/lo, x1 hi/lo</text>
+  <text class="mono" x="32" y="176">cmd  0x2B  RASET</text><text class="mono s" x="196" y="176">+ y0 hi/lo, y1 hi/lo</text>
   <text class="mono" x="32" y="198">cmd  0x2C  RAMWR</text><text class="mono s" x="200" y="198">pixels follow</text>
   <text class="s" x="32" y="222">3 commands and 8 parameters, whatever the size of the window</text>
 

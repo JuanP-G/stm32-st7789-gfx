@@ -38,7 +38,7 @@ MULTI_SRC  := $(LIB_SRC) $(TESTDIR)/sim.c
 SINGLE_SRC := $(TESTDIR)/single_impl.c $(TESTDIR)/sim.c
 SINGLE_INC := -Isingle_header -Itests/host -DUSE_SINGLE_HEADER
 
-.PHONY: all test golden shots diagrams clean header header-check host single equiv bench strict clang arm site
+.PHONY: all test golden shots diagrams clean header header-check host single equiv bench strict clang arm site docs og-image
 
 all: test
 
@@ -134,7 +134,14 @@ arm: | $(B)
 		echo "arm OK"; \
 	else echo "== $(ARMGCC) not found: skipped (CI runs it)"; fi
 
-# ---- web checks ----
+# ---- web ----
+docs:
+	$(PYTHON) tools/build_site.py
+
+og-image:
+	$(PYTHON) tools/make_og_image.py
+
+# links, anchors, titles, canonical URLs, JSON-LD, social image
 site:
 	@echo "== site checks"
 	$(PYTHON) tools/check_site.py

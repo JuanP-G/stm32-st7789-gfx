@@ -1,0 +1,125 @@
+<section class="hero" aria-labelledby="title">
+  <div>
+    <h1 id="title">Biblioteca gráfica en C para pantallas ST7789 en STM32</h1>
+    <p class="lead">Formas, texto suavizado, iconos, imágenes y widgets para paneles de 240 x 240 en RGB565. Se conecta al hardware con dos funciones, usa solo aritmética entera y todo el dibujo se prueba en el PC.</p>
+    <div class="btns">
+      <a class="btn primary" href="#inicio">Empezar</a>
+      <a class="btn" href="{{repo}}">Ver en GitHub</a>
+    </div>
+    <ul class="badges" aria-label="Datos clave">
+      <li>C99</li>
+      <li>Licencia MIT</li>
+      <li>FMC, SPI o bus de 8 bits</li>
+      <li>Sin float ni malloc</li>
+      <li>Versión de un solo header</li>
+    </ul>
+  </div>
+  <div class="shots">
+    <figure class="shot"><img src="{{root}}img/screens/demo_3.png" width="240" height="240" alt="Página de demostración Dashboard, con un indicador circular de CPU, la temperatura, una gráfica de línea y una barra de pestañas"><figcaption>Dashboard</figcaption></figure>
+    <figure class="shot"><img src="{{root}}img/screens/demo_4.png" width="240" height="240" alt="Página de demostración Settings, con filas de lista, interruptores, un deslizador, casillas y botones"><figcaption>Ajustes</figcaption></figure>
+    <figure class="shot"><img src="{{root}}img/screens/demo_1.png" width="240" height="240" alt="Página de texto con cinco tamaños de fuente suavizada y un reloj grande"><figcaption>Texto suavizado</figcaption></figure>
+    <figure class="shot"><img src="{{root}}img/screens/demo_2.png" width="240" height="240" alt="Página de iconos con 32 iconos de colores en una cuadrícula"><figcaption>32 iconos</figcaption></figure>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="stat"><b>2</b><span>funciones conectan con el hardware</span></div>
+  <div class="stat"><b>12x</b><span>menos escrituras al bus que pixel a pixel</span></div>
+  <div class="stat"><b>0</b><span>operaciones en coma flotante</span></div>
+  <div class="stat"><b>69</b><span>comprobaciones en PC, más 16 hashes de píxeles</span></div>
+</div>
+
+<h2 id="por-que">Por qué esta biblioteca</h2>
+<p>Manejar una ST7789 paralela desde un STM32 es fácil de empezar y difícil de hacer rápido. Enviar la ventana de direcciones por cada píxel cuesta 12 escrituras al bus por píxel, así que una pantalla completa necesita 691.200 escrituras. Esta biblioteca fija la ventana una sola vez y envía los píxeles seguidos, con lo que rellenar la pantalla entera baja a 57.611 escrituras.</p>
+<div class="grid">
+  <div class="card"><h3>Rápida por diseño</h3><p>Cada primitiva pinta tramos de píxeles con una ventana y una ráfaga, y recorta a la pantalla antes. Nada se dibuja píxel a píxel.</p></div>
+  <div class="card"><h3>Puerto de dos funciones</h3><p>Implementa <code>gfx_port_cmd()</code> y <code>gfx_port_data()</code> para FMC, SPI o un bus de 8 bits. El resto de la biblioteca nunca toca un registro.</p></div>
+  <div class="card"><h3>Probable en el PC</h3><p>Un modelo del controlador se ejecuta en tu ordenador. Las pruebas comparan cada página de la demo con hashes de píxeles antes de llegar a la placa.</p></div>
+  <div class="card"><h3>Texto suavizado</h3><p>Seis fuentes proporcionales derivadas de DejaVu Sans, a 4 bits por píxel, con entrada UTF-8 para caracteres Latin-1.</p></div>
+  <div class="card"><h3>Widgets listos</h3><p>Panel, botón, interruptor, deslizador, indicador circular, gráfica, lista, barra de pestañas y barra de estado, con tema oscuro y claro.</p></div>
+  <div class="card"><h3>Poca huella</h3><p>Solo enteros. Unos 141 KB de datos de fuentes, que el enlazador descarta si no las usas. Sin memoria dinámica.</p></div>
+</div>
+
+<h2 id="como-dibuja">Cómo dibuja</h2>
+<p>Se recorta el rectángulo, se fija la ventana del controlador una vez con CASET, RASET y RAMWR, y después cada píxel se envía como una palabra de datos. El controlador avanza por la ventana él solo.</p>
+<figure class="diagram">
+  <img src="{{root}}img/window-burst.svg" width="760" height="440" alt="Flujo de dibujo con ventana y ráfaga: recortar, fijar la ventana con 11 escrituras y enviar una palabra de datos por píxel" loading="lazy">
+  <figcaption>Ventana y ráfaga: el coste de preparación se paga una vez por tramo, no una vez por píxel. El diagrama está en inglés, como la documentación técnica.</figcaption>
+</figure>
+<figure class="diagram">
+  <img src="{{root}}img/writes-comparison.svg" width="800" height="540" alt="Gráfico de barras en escala logarítmica con las escrituras al bus de cada operación, ventana y ráfaga frente a pixel a pixel" loading="lazy">
+  <figcaption>Escrituras al bus medidas en el modelo del PC con <code>make bench</code>. Un solo píxel cuesta lo mismo en ambos casos; todo lo demás es entre 8 y 12 veces más barato.</figcaption>
+</figure>
+
+<h2 id="inicio">Inicio rápido</h2>
+<p>Añade <code>include/</code> y <code>src/</code> a tu proyecto, o copia el header único. Después escribe las dos funciones del puerto y dibuja.</p>
+<pre><code>#include "gfx_core.h"
+#include "gfx_text.h"
+#include "gfx_fonts.h"
+
+/* Única conexión con el hardware. FMC de 16 bits, A0 elige comando o dato. */
+#define LCD_REG (*(volatile uint16_t *)0x60000000u)
+#define LCD_RAM (*(volatile uint16_t *)0x60000002u)
+void gfx_port_cmd(uint8_t c)   { LCD_REG = c; }
+void gfx_port_data(uint16_t d) { LCD_RAM = d; }
+
+void draw(void)
+{
+    gfx_fill_screen(GFX_HEX(0x10131A));
+    gfx_text(10, 10, "Hola, ST7789", &amp;gfx_font_sans_bold_24,
+             GFX_WHITE, GFX_HEX(0x10131A));
+}</code></pre>
+
+<h2 id="cubeide">Integrarla en STM32CubeIDE</h2>
+<ol>
+  <li>Copia <code>include/</code> y <code>src/</code> a tu proyecto, por ejemplo en <code>Drivers/stm32-st7789-gfx</code>.</li>
+  <li>En <b>Propiedades</b>, <b>C/C++ General</b>, <b>Paths and Symbols</b>, añade la carpeta <code>src</code> como ubicación de código y la carpeta <code>include</code> como ruta de includes de GNU C.</li>
+  <li>Conserva las opciones por defecto <code>-ffunction-sections -fdata-sections</code> y <code>-Wl,--gc-sections</code>: eliminan las fuentes e iconos que no uses.</li>
+  <li>Guarda los ficheros fuente en UTF-8 para que cadenas como <code>"25 °C"</code> lleguen bien a la biblioteca.</li>
+  <li>Alternativa: copia <code>single_header/lcd_gfx.h</code> a <code>Core/Inc</code> y, en un único fichero .c, escribe <code>#define GFX_IMPLEMENTATION</code> antes de incluirlo.</li>
+</ol>
+<p>La inicialización del controlador (salir de reposo, formato de píxel, control de acceso a memoria, encender la pantalla) es cosa del código de tu placa, no de esta biblioteca.</p>
+
+<h2 id="puerto">El puerto: FMC, SPI y bus de 8 bits</h2>
+<p><code>gfx_port_data()</code> transporta dos tipos de datos: parámetros de 8 bits después de CASET o RASET, y píxeles de 16 bits RGB565 después de RAMWR. Con un FMC de 16 bits da igual. Con SPI o un bus de 8 bits hay que recordar el último comando y enviar un byte para los parámetros y dos bytes, primero el alto, para los píxeles.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Bus</th><th>Comando (<code>gfx_port_cmd</code>)</th><th>Dato (<code>gfx_port_data</code>)</th></tr></thead>
+  <tbody>
+    <tr><td>FMC de 16 bits</td><td>Escribir en la dirección base del banco (A0 = 0)</td><td>Escribir en base + 2 (A0 = 1). Conecta <code>FMC_A0</code> al pin D/CX</td></tr>
+    <tr><td>SPI de 4 hilos</td><td>D/C a 0, enviar 1 byte, guardar el comando</td><td>D/C a 1; tras RAMWR enviar 2 bytes (alto primero), si no 1 byte</td></tr>
+    <tr><td>Bus de 8 bits</td><td>D/C a 0, un pulso de WR con el byte, guardar el comando</td><td>D/C a 1; tras RAMWR dos pulsos de WR (alto primero), si no uno</td></tr>
+  </tbody>
+</table></div>
+<p>El código completo de los tres casos está en la <a href="{{root}}getting-started.html#port">guía de integración en inglés</a>.</p>
+
+<h2 id="problemas">Problemas típicos</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Síntoma</th><th>Causa probable</th><th>Qué hacer</th></tr></thead>
+  <tbody>
+    <tr><td>Imagen espejada o boca abajo</td><td>Los bits MX o MY del registro de control de acceso a memoria (MADCTL, <code>0x36</code>) no encajan con tu módulo.</td><td>Invierte MX (<code>0x40</code>) o MY (<code>0x80</code>) en la inicialización.</td></tr>
+    <tr><td>Rojo y azul cambiados</td><td>El bit RGB/BGR de MADCTL (<code>0x08</code>) no coincide, o en SPI y bus de 8 bits se envía primero el byte bajo.</td><td>Cambia el bit BGR y envía primero el byte alto.</td></tr>
+    <tr><td>Desplazamiento: franja con contenido equivocado en un borde</td><td>La RAM del controlador es de 240 x 320 y algunos módulos de 240 x 240 muestran solo una parte, con un desplazamiento que depende de la orientación.</td><td>Elige la orientación cuya zona visible empieza en la fila 0. La biblioteca no tiene ajuste de desplazamiento.</td></tr>
+    <tr><td>Ruido, nieve, colores erróneos</td><td>Temporización del bus demasiado rápida, una línea de datos sin conectar o un ancho de bus mal configurado.</td><td>Alarga los tiempos de preparación del FMC, revisa las líneas con las pantallas lisas y acorta los cables.</td></tr>
+    <tr><td>Texto con signos de interrogación</td><td>El fichero fuente no está en UTF-8, o el carácter pasa de U+00FF.</td><td>Guarda en UTF-8. Las fuentes solo llegan a U+00FF.</td></tr>
+  </tbody>
+</table></div>
+<p>Cada fallo se ve en un patrón concreto del módulo <code>gfx_selftest</code>: barras de color, rampa de grises, marco con esquinas distintas, rejilla con círculo, rectángulos anidados, texto con iconos y pantallas lisas roja, verde y azul. La tabla completa está en la <a href="{{root}}getting-started.html#troubleshooting">guía en inglés</a>.</p>
+
+<h2 id="pruebas">Pruebas en tres niveles</h2>
+<ol>
+  <li><b>En el PC.</b> <code>make test</code> ejecuta 69 comprobaciones contra un modelo del controlador, compara 16 páginas con hashes FNV-1a de referencia, mide las escrituras al bus y compila con <code>-Wall -Wextra -pedantic -std=c99</code>. Todo se repite con la versión de un solo header.</li>
+  <li><b>En la placa.</b> Recorre las nueve páginas de <code>gfx_selftest</code> y compara con lo esperado.</li>
+  <li><b>Integración.</b> Ejecuta el bucle de la demo, mide el tiempo de rellenar la pantalla y compara tus pantallas con su render en el PC.</li>
+</ol>
+<p>Los detalles están en la <a href="{{root}}testing.html">página de pruebas</a>.</p>
+
+<h2 id="limites">Límites conocidos</h2>
+<ul>
+  <li>Sin rotación: la biblioteca dibuja en la orientación nativa de 240 x 240.</li>
+  <li>Las fuentes ocupan unos 141 KB de flash (los 32 iconos, 16 KB más). El enlazador descarta lo que no uses.</li>
+  <li>Solo Latin-1: los demás caracteres se dibujan como <code>?</code>.</li>
+  <li>Tamaño de pantalla fijo, sin lectura de píxeles y sin DMA incorporado.</li>
+</ul>
+
+<h2 id="creditos">Créditos</h2>
+<p>La biblioteca nació como la práctica 7 de la asignatura de Procesadores y Sistemas Digitales (PSyD) de la Universidad Complutense de Madrid (UCM), escrita para la placa STM32F723E-DISCO, y se ha convertido en un proyecto independiente. Las fuentes derivan de DejaVu Sans; consulta los <a href="{{repo}}/blob/main/THIRD_PARTY_NOTICES.md">avisos de terceros</a>.</p>

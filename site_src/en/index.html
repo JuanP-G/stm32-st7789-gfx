@@ -1,0 +1,92 @@
+<section class="hero" aria-labelledby="title">
+  <div>
+    <h1 id="title">A portable C graphics library for ST7789 displays on STM32</h1>
+    <p class="lead">Shapes, anti-aliased text, icons, images and widgets for 240 x 240 RGB565 panels. It talks to the hardware through two functions, uses integer arithmetic only, and every drawing path is tested on a PC.</p>
+    <div class="btns">
+      <a class="btn primary" href="getting-started.html">Get started</a>
+      <a class="btn" href="{{repo}}">View on GitHub</a>
+    </div>
+    <ul class="badges" aria-label="Key facts">
+      <li>C99</li>
+      <li>MIT license</li>
+      <li>FMC, SPI or 8-bit</li>
+      <li>No float, no malloc</li>
+      <li>Single-header option</li>
+    </ul>
+  </div>
+  <div class="shots">
+    <figure class="shot"><img src="{{root}}img/screens/demo_3.png" width="240" height="240" alt="Dashboard demo page with a CPU ring gauge, a temperature reading, a line chart and a tab bar"><figcaption>Dashboard</figcaption></figure>
+    <figure class="shot"><img src="{{root}}img/screens/demo_4.png" width="240" height="240" alt="Settings demo page with list rows, switches, a slider, check boxes and buttons"><figcaption>Settings</figcaption></figure>
+    <figure class="shot"><img src="{{root}}img/screens/demo_1.png" width="240" height="240" alt="Text demo page showing five anti-aliased font sizes and a large clock"><figcaption>Anti-aliased text</figcaption></figure>
+    <figure class="shot"><img src="{{root}}img/screens/demo_2.png" width="240" height="240" alt="Icons demo page with 32 colourful icons in a grid"><figcaption>32 icons</figcaption></figure>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="stat"><b>2</b><span>functions connect it to the hardware</span></div>
+  <div class="stat"><b>12x</b><span>fewer bus writes than pixel by pixel</span></div>
+  <div class="stat"><b>0</b><span>floating-point operations</span></div>
+  <div class="stat"><b>69</b><span>checks run on a PC, plus 16 pixel hashes</span></div>
+</div>
+
+<h2 id="why">Why this library</h2>
+<p>Driving a parallel ST7789 from an STM32 is easy to start and hard to make fast. Sending the address window for every pixel costs 12 bus writes per pixel, so a full screen takes 691,200 writes. This library sets the window once and streams the pixels, which brings a full-screen fill down to 57,611 writes.</p>
+<div class="grid">
+  <div class="card"><h3>Fast by construction</h3><p>Every primitive paints runs of pixels with one window and one burst, and clips to the screen first. Nothing draws pixel by pixel.</p></div>
+  <div class="card"><h3>Two-function port</h3><p>Implement <code>gfx_port_cmd()</code> and <code>gfx_port_data()</code> for FMC, SPI or an 8-bit bus. The rest of the library never touches a register.</p></div>
+  <div class="card"><h3>Host-testable</h3><p>A model of the controller runs on your PC. Tests compare every page of the demo to golden pixel hashes before anything reaches the board.</p></div>
+  <div class="card"><h3>Anti-aliased text</h3><p>Six proportional fonts derived from DejaVu Sans, 4 bits per pixel, with UTF-8 input for Latin-1 characters.</p></div>
+  <div class="card"><h3>Ready-made widgets</h3><p>Panel, button, switch, slider, ring gauge, chart, list, tab bar and status bar, with a dark and a light theme.</p></div>
+  <div class="card"><h3>Small footprint</h3><p>Integer maths only. About 141 KB of font data, which the linker drops for fonts you do not use. No dynamic memory.</p></div>
+</div>
+
+<h2 id="how">How it draws</h2>
+<p>A rectangle is clipped, the controller window is set once with CASET, RASET and RAMWR, and then every pixel is sent as a single data word. The controller advances through the window by itself.</p>
+<figure class="diagram">
+  <img src="{{root}}img/window-burst.svg" width="760" height="440" alt="Flow of window and burst drawing: clip, set the window with 11 bus writes, then stream one data word per pixel" loading="lazy">
+  <figcaption>Window and burst: the set-up cost is paid once per run, not once per pixel.</figcaption>
+</figure>
+<figure class="diagram">
+  <img src="{{root}}img/writes-comparison.svg" width="800" height="540" alt="Logarithmic bar chart of bus writes per drawing operation, window and burst against pixel by pixel" loading="lazy">
+  <figcaption>Bus writes measured on the PC model with <code>make bench</code>. A single pixel costs the same either way; everything larger is about 8 to 12 times cheaper.</figcaption>
+</figure>
+
+<h2 id="quickstart">Quick start</h2>
+<p>Add <code>include/</code> and <code>src/</code> to your project, or drop in the single header. Then provide the two port functions and draw.</p>
+<pre><code>#include "gfx_core.h"
+#include "gfx_text.h"
+#include "gfx_fonts.h"
+
+/* The only link to the hardware. FMC 16-bit, A0 selects command or data. */
+#define LCD_REG (*(volatile uint16_t *)0x60000000u)
+#define LCD_RAM (*(volatile uint16_t *)0x60000002u)
+void gfx_port_cmd(uint8_t c)   { LCD_REG = c; }
+void gfx_port_data(uint16_t d) { LCD_RAM = d; }
+
+void draw(void)
+{
+    gfx_fill_screen(GFX_HEX(0x10131A));
+    gfx_text(10, 10, "Hello, ST7789", &amp;gfx_font_sans_bold_24,
+             GFX_WHITE, GFX_HEX(0x10131A));
+}</code></pre>
+<p>The full walkthrough, including STM32CubeIDE setup and the SPI and 8-bit ports, is in <a href="getting-started.html">Getting started</a>. The single-header form is described in the <a href="api.html#single-header">API reference</a>.</p>
+
+<h2 id="gallery">Demo and self-test pages</h2>
+<p>The library ships seven demo pages and nine bring-up patterns. The same pages are rendered on the PC model, hashed, and compared with a golden file in CI.</p>
+<figure class="diagram">
+  <img src="{{root}}img/screens/demo_sheet.png" width="1020" height="516" alt="Contact sheet of the seven demo pages: Shapes, Text, Icons, Panel, Settings, Light theme and Images" loading="lazy">
+  <figcaption>Demo pages, rendered by the host model: Shapes, Text, Icons, Panel, Settings, Light theme, Images.</figcaption>
+</figure>
+<figure class="diagram">
+  <img src="{{root}}img/screens/selftest_sheet.png" width="1020" height="768" alt="Contact sheet of the nine self-test patterns: colour bars, gray ramp, frame and corners, grid, nested rectangles, text and icons, and solid red, green and blue" loading="lazy">
+  <figcaption>Self-test patterns for a real panel. Each one makes a different wiring or configuration fault obvious. See <a href="testing.html#board">Testing on the board</a>.</figcaption>
+</figure>
+
+<h2 id="fit">Is it the right fit</h2>
+<ul>
+  <li><b>Good fit:</b> a 240 x 240 ST7789 panel on an STM32 with FMC (or any MCU that can write a command byte and a data word), a UI of panels, text and gauges, and a wish to test drawing code on a PC.</li>
+  <li><b>Not a fit:</b> screen rotation, scrolling, hardware read-back and DMA streaming are not provided. See the <a href="getting-started.html#limits">known limits</a>.</li>
+</ul>
+
+<h2 id="credits">Credits</h2>
+<p>The library started as practice 7 of the microprocessor-systems course (PSyD) at the Complutense University of Madrid (UCM), written for the STM32F723E-DISCO board, and was reworked into this standalone project. The fonts are derived from DejaVu Sans; see the <a href="{{repo}}/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</p>

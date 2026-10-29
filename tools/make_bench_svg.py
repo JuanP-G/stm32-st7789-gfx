@@ -34,7 +34,7 @@ def main(src, dst):
     left, right, top = 190, 740, 64
     row_h = 44
     width = 800
-    height = top + row_h * len(items) + 70
+    height = top + row_h * len(items) + 36
 
     def x(v):
         v = max(v, lo)

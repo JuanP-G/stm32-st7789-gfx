@@ -1,0 +1,171 @@
+<h1>API reference</h1>
+<p class="lead">Every public function, grouped by header. Coordinates are in pixels with the origin at the top-left corner; every drawing call is clipped to the 240 x 240 screen.</p>
+
+<h2 id="conventions">Conventions</h2>
+<ul>
+  <li>Colours are <code>gfx_color_t</code>, an RGB565 <code>uint16_t</code>. Build them with <code>GFX_RGB(r, g, b)</code> (components 0 to 255) or <code>GFX_HEX(0xRRGGBB)</code>.</li>
+  <li><code>x, y</code> is the top-left corner of rectangles, images and text. Circles and arcs take their centre <code>cx, cy</code>.</li>
+  <li>Angles are in degrees: 0 points up and positive angles run clockwise.</li>
+  <li>Strings are UTF-8 and limited to code points up to U+00FF.</li>
+</ul>
+
+<h2 id="port">Port: <code>gfx_port.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>void gfx_port_cmd(uint8_t command)</code></td><td>Write one command byte (A0 or D/C low). You implement it.</td></tr>
+    <tr><td><code>void gfx_port_data(uint16_t data)</code></td><td>Write one data word (A0 or D/C high): an 8-bit parameter after CASET or RASET, a 16-bit pixel after RAMWR. You implement it.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="core">Core: <code>gfx_core.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function or macro</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>GFX_WIDTH</code>, <code>GFX_HEIGHT</code></td><td>Screen size, 240 and 240.</td></tr>
+    <tr><td><code>GFX_VERSION</code></td><td>Library version string.</td></tr>
+    <tr><td><code>GFX_RGB(r, g, b)</code>, <code>GFX_HEX(rgb)</code></td><td>Build an RGB565 colour.</td></tr>
+    <tr><td><code>GFX_BLACK</code>, <code>GFX_WHITE</code></td><td>Colour constants.</td></tr>
+    <tr><td><code>void gfx_set_window(x0, y0, x1, y1)</code></td><td>Send CASET, RASET and RAMWR. Does not clip.</td></tr>
+    <tr><td><code>void gfx_push(color)</code></td><td>Send one pixel inside the current window.</td></tr>
+    <tr><td><code>void gfx_push_repeat(color, count)</code></td><td>Send <code>count</code> copies of a colour.</td></tr>
+    <tr><td><code>int gfx_clip_rect(int *x, int *y, int *w, int *h)</code></td><td>Clip a rectangle to the screen. Returns 0 if nothing is left.</td></tr>
+    <tr><td><code>void gfx_pixel(x, y, color)</code></td><td>Draw one pixel (costs 12 bus writes).</td></tr>
+    <tr><td><code>void gfx_fill_rect(x, y, w, h, color)</code></td><td>Filled rectangle, one window and one burst.</td></tr>
+    <tr><td><code>void gfx_fill_screen(color)</code></td><td>Fill the whole screen.</td></tr>
+    <tr><td><code>void gfx_hline(x, y, w, color)</code>, <code>void gfx_vline(x, y, h, color)</code></td><td>Horizontal and vertical lines.</td></tr>
+    <tr><td><code>gfx_color_t gfx_blend(a, b, t)</code></td><td>Mix two colours; <code>t</code> = 0 gives <code>a</code>, 255 gives <code>b</code>.</td></tr>
+    <tr><td><code>gfx_color_t gfx_lighten(c, amount)</code>, <code>gfx_darken(c, amount)</code></td><td>Mix with white or black.</td></tr>
+    <tr><td><code>void gfx_fill_rect_vgradient(x, y, w, h, top, bottom)</code></td><td>Vertical gradient, one row per step.</td></tr>
+    <tr><td><code>void gfx_fill_rect_hgradient(x, y, w, h, left, right)</code></td><td>Horizontal gradient, one column per step.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="shapes">Shapes: <code>gfx_shapes.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>void gfx_line(x0, y0, x1, y1, color)</code></td><td>One-pixel line, drawn as runs.</td></tr>
+    <tr><td><code>void gfx_line_thick(x0, y0, x1, y1, thickness, color)</code></td><td>Thick line with round caps.</td></tr>
+    <tr><td><code>void gfx_rect(x, y, w, h, color)</code></td><td>One-pixel rectangle outline.</td></tr>
+    <tr><td><code>void gfx_rect_thick(x, y, w, h, thickness, color)</code></td><td>Outline whose border grows inwards.</td></tr>
+    <tr><td><code>void gfx_round_rect(x, y, w, h, radius, thickness, color)</code></td><td>Rounded outline.</td></tr>
+    <tr><td><code>void gfx_fill_round_rect(x, y, w, h, radius, color)</code></td><td>Filled rounded rectangle; the radius is clamped to half the shorter side.</td></tr>
+    <tr><td><code>void gfx_fill_round_rect_vgradient(x, y, w, h, radius, top, bottom)</code></td><td>Rounded rectangle with a vertical gradient.</td></tr>
+    <tr><td><code>void gfx_circle(cx, cy, radius, color)</code></td><td>One-pixel circle outline.</td></tr>
+    <tr><td><code>void gfx_fill_circle(cx, cy, radius, color)</code></td><td>Filled circle.</td></tr>
+    <tr><td><code>void gfx_ring(cx, cy, radius, thickness, color)</code></td><td>Ring; the thickness grows inwards.</td></tr>
+    <tr><td><code>void gfx_arc(cx, cy, radius, thickness, start_deg, end_deg, color)</code></td><td>Ring segment between two angles.</td></tr>
+    <tr><td><code>void gfx_triangle(x0, y0, x1, y1, x2, y2, color)</code></td><td>Triangle outline.</td></tr>
+    <tr><td><code>void gfx_fill_triangle(x0, y0, x1, y1, x2, y2, color)</code></td><td>Filled triangle.</td></tr>
+    <tr><td><code>void gfx_polygon(const gfx_point_t *points, int count, color)</code></td><td>Polygon outline.</td></tr>
+    <tr><td><code>void gfx_fill_polygon(const gfx_point_t *points, int count, color)</code></td><td>Filled polygon, even-odd rule, up to 16 vertices.</td></tr>
+    <tr><td><code>uint32_t gfx_isqrt(uint32_t value)</code></td><td>Integer square root (floor).</td></tr>
+    <tr><td><code>int gfx_sin_q14(int degrees)</code>, <code>int gfx_cos_q14(int degrees)</code></td><td>Sine and cosine scaled by 16384.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="text">Text: <code>gfx_text.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>int gfx_text_width(const char *text, const gfx_font_t *font)</code></td><td>Width of a string in pixels.</td></tr>
+    <tr><td><code>int gfx_text(x, y, text, font, fg, bg)</code></td><td>Draw smooth text over a known background. Returns the x coordinate after the last glyph.</td></tr>
+    <tr><td><code>int gfx_text_t(x, y, text, font, fg)</code></td><td>Transparent background, no smoothing. Returns the x coordinate after the last glyph.</td></tr>
+    <tr><td><code>void gfx_text_box(x, y, w, text, font, fg, bg, align)</code></td><td>Align text in a box of width <code>w</code> and paint the leftover background. <code>align</code> is <code>GFX_ALIGN_LEFT</code>, <code>GFX_ALIGN_CENTER</code> or <code>GFX_ALIGN_RIGHT</code>.</td></tr>
+    <tr><td><code>char *gfx_int_to_str(int32_t value, char *buf)</code></td><td>Integer to text without printf. The buffer needs at least 12 bytes.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="image">Images and icons: <code>gfx_image.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>void gfx_draw_image(x, y, w, h, const uint16_t *pixels)</code></td><td>Draw a full RGB565 image stored in flash.</td></tr>
+    <tr><td><code>void gfx_draw_icon(x, y, const gfx_image_a4_t *icon, fg, bg)</code></td><td>4-bit opacity icon, smooth over a known background.</td></tr>
+    <tr><td><code>void gfx_draw_icon_t(x, y, icon, fg)</code></td><td>Icon without a background, no smoothing.</td></tr>
+    <tr><td><code>void gfx_draw_bitmap1(x, y, w, h, const uint8_t *bits, fg, bg)</code></td><td>1-bit bitmap, most significant bit on the left.</td></tr>
+    <tr><td><code>void gfx_draw_bitmap1_t(x, y, w, h, bits, fg)</code></td><td>1-bit bitmap, only the set bits are painted.</td></tr>
+  </tbody>
+</table></div>
+<p>Convert your own pictures with <code>tools/img2c.py</code>: <code>python3 tools/img2c.py photo.png my_photo --size 120x80</code> writes <code>my_photo.c</code> and <code>my_photo.h</code>, and <code>--mono</code> produces a 1-bit bitmap.</p>
+
+<h2 id="fonts">Fonts: <code>gfx_fonts.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Object</th><th>Line height</th><th>Characters</th></tr></thead>
+  <tbody>
+    <tr><td><code>gfx_font_sans_12</code></td><td>15 px</td><td>U+0020 to U+007E, U+00A0 to U+00FF</td></tr>
+    <tr><td><code>gfx_font_sans_16</code></td><td>19 px</td><td>U+0020 to U+007E, U+00A0 to U+00FF</td></tr>
+    <tr><td><code>gfx_font_sans_24</code></td><td>29 px</td><td>U+0020 to U+007E, U+00A0 to U+00FF</td></tr>
+    <tr><td><code>gfx_font_sans_bold_16</code></td><td>19 px</td><td>U+0020 to U+007E, U+00A0 to U+00FF</td></tr>
+    <tr><td><code>gfx_font_sans_bold_24</code></td><td>29 px</td><td>U+0020 to U+007E, U+00A0 to U+00FF</td></tr>
+    <tr><td><code>gfx_font_sans_bold_48</code></td><td>57 px</td><td>space to colon (digits) and the degree sign</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="icons">Icons: <code>gfx_icons.h</code></h2>
+<p>32 icons of 32 x 32 pixels, 4 bits of opacity each. Pass them to <code>gfx_draw_icon()</code>, <code>gfx_widget_button()</code>, <code>gfx_widget_list_item()</code> and <code>gfx_widget_tabbar()</code>.</p>
+<p><code>gfx_icon_home</code>, <code>gfx_icon_gear</code>, <code>gfx_icon_wifi</code>, <code>gfx_icon_battery</code>, <code>gfx_icon_bell</code>, <code>gfx_icon_user</code>, <code>gfx_icon_lock</code>, <code>gfx_icon_heart</code>, <code>gfx_icon_star</code>, <code>gfx_icon_sun</code>, <code>gfx_icon_moon</code>, <code>gfx_icon_check</code>, <code>gfx_icon_close</code>, <code>gfx_icon_plus</code>, <code>gfx_icon_minus</code>, <code>gfx_icon_arrow_left</code>, <code>gfx_icon_arrow_right</code>, <code>gfx_icon_arrow_up</code>, <code>gfx_icon_arrow_down</code>, <code>gfx_icon_play</code>, <code>gfx_icon_pause</code>, <code>gfx_icon_search</code>, <code>gfx_icon_mail</code>, <code>gfx_icon_clock</code>, <code>gfx_icon_bolt</code>, <code>gfx_icon_power</code>, <code>gfx_icon_thermometer</code>, <code>gfx_icon_drop</code>, <code>gfx_icon_menu</code>, <code>gfx_icon_info</code>, <code>gfx_icon_warning</code>, <code>gfx_icon_pin</code>.</p>
+<figure class="diagram">
+  <img src="{{root}}img/screens/demo_2.png" width="240" height="240" alt="All 32 icons drawn in a grid on the Icons demo page" loading="lazy" style="max-width:240px;image-rendering:pixelated">
+  <figcaption>The Icons demo page.</figcaption>
+</figure>
+
+<h2 id="widgets">Widgets: <code>gfx_widgets.h</code></h2>
+<p>Widgets draw with the colours of the active theme. Choose it with <code>gfx_set_theme(&amp;gfx_theme_dark)</code> or <code>gfx_set_theme(&amp;gfx_theme_light)</code>, or define your own <code>gfx_theme_t</code>.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>void gfx_widget_panel(x, y, w, h, title)</code></td><td>Card with an optional title (<code>NULL</code> for none).</td></tr>
+    <tr><td><code>void gfx_widget_status_bar(title, battery_percent, wifi_on)</code></td><td>32 px top bar.</td></tr>
+    <tr><td><code>void gfx_widget_tabbar(y, h, icons, labels, count, selected)</code></td><td>Bottom tab bar.</td></tr>
+    <tr><td><code>void gfx_widget_button(x, y, w, h, label, icon, state)</code></td><td>Button; <code>state</code> is <code>GFX_BUTTON_NORMAL</code>, <code>GFX_BUTTON_PRESSED</code> or <code>GFX_BUTTON_DISABLED</code>; <code>icon</code> may be <code>NULL</code>.</td></tr>
+    <tr><td><code>void gfx_widget_switch(x, y, on)</code></td><td>On/off switch, 48 x 26 px.</td></tr>
+    <tr><td><code>void gfx_widget_checkbox(x, y, checked, label, bg)</code></td><td>Check box with a label.</td></tr>
+    <tr><td><code>void gfx_widget_slider(x, y, w, percent, bg)</code></td><td>Slider, 24 px tall, 0 to 100 percent.</td></tr>
+    <tr><td><code>void gfx_widget_badge(x, y, text, color)</code></td><td>Small rounded label.</td></tr>
+    <tr><td><code>void gfx_widget_progress(x, y, w, h, percent, color)</code></td><td>Progress bar.</td></tr>
+    <tr><td><code>void gfx_widget_ring(cx, cy, radius, thickness, percent, color, center_text)</code></td><td>Ring gauge with optional centre text.</td></tr>
+    <tr><td><code>void gfx_widget_chart(x, y, w, h, data, count, vmin, vmax, color)</code></td><td>Line chart with a filled area.</td></tr>
+    <tr><td><code>void gfx_widget_big_number(x, y, w, number, unit, color, bg)</code></td><td>Large number with a unit, centred in a box.</td></tr>
+    <tr><td><code>void gfx_widget_list_item(x, y, w, h, icon, title, detail, selected)</code></td><td>List row with icon, title and right-aligned detail.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="demo">Demo: <code>gfx_demo.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>int gfx_demo_page_count(void)</code></td><td>Number of pages (7).</td></tr>
+    <tr><td><code>const char *gfx_demo_page_name(int page)</code></td><td>Shapes, Text, Icons, Panel, Settings, Light theme, Images.</td></tr>
+    <tr><td><code>void gfx_demo_page(int page)</code></td><td>Draw a whole demo screen.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="selftest">Self-test: <code>gfx_selftest.h</code></h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Function</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>int gfx_selftest_page_count(void)</code></td><td>Number of patterns (9).</td></tr>
+    <tr><td><code>const char *gfx_selftest_page_name(int page)</code></td><td>Colour bars, Gray ramp, Frame and corners, Grid, cross, circle, Nested rectangles, Text and icons, Solid red, Solid green, Solid blue.</td></tr>
+    <tr><td><code>void gfx_selftest_page(int page)</code></td><td>Draw a whole test pattern.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="single-header">Single header: <code>lcd_gfx.h</code></h2>
+<p>The same API in one file. Define <code>GFX_IMPLEMENTATION</code> before the include in exactly one source file; include it plainly everywhere else.</p>
+<pre><code>/* gfx_impl.c: the only file that holds the code */
+#define GFX_IMPLEMENTATION
+#include "lcd_gfx.h"
+
+/* any other file */
+#include "lcd_gfx.h"</code></pre>
+<div class="tablewrap"><table>
+  <thead><tr><th>Macro</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>GFX_IMPLEMENTATION</code></td><td>Compile the implementation in this translation unit.</td></tr>
+    <tr><td><code>GFX_WITHOUT_DEMO</code></td><td>Leave out the demo pages and their sample images. Define it for every file that includes the header.</td></tr>
+    <tr><td><code>GFX_WITHOUT_SELFTEST</code></td><td>Leave out the self-test patterns. Define it for every file that includes the header.</td></tr>
+  </tbody>
+</table></div>
+<p>Regenerate the file after changing the sources with <code>make header</code>; <code>make test</code> fails if the committed file is out of date.</p>

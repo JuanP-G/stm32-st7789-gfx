@@ -1,0 +1,186 @@
+<h1>Getting started</h1>
+<p class="lead">Add the library to an STM32CubeIDE project, write the two port functions for your bus, and draw the first screen. Then use the self-test patterns to check the panel.</p>
+
+<h2 id="requirements">What you need</h2>
+<ul>
+  <li>An STM32 with a way to write a command byte and a 16-bit data word to the display controller: FMC, SPI or a GPIO-driven 8-bit bus.</li>
+  <li>A 240 x 240 ST7789 panel. The controller must already be initialised (sleep out, pixel format, memory access control, display on). That code belongs to your board support, not to this library.</li>
+  <li>A C99 compiler. STM32CubeIDE with the GNU Arm toolchain works as it is.</li>
+</ul>
+
+<h2 id="cubeide">Add the library to an STM32CubeIDE project</h2>
+<h3>Option A: separate files</h3>
+<ol>
+  <li>Copy <code>include/</code> and <code>src/</code> from the repository into your project, for example to <code>Drivers/stm32-st7789-gfx/include</code> and <code>Drivers/stm32-st7789-gfx/src</code>.</li>
+  <li>Right-click the project and open <b>Properties</b>, <b>C/C++ General</b>, <b>Paths and Symbols</b>. On the <b>Source Location</b> tab add the <code>src</code> folder; on the <b>Includes</b> tab (GNU C) add <code>${ProjDirPath}/Drivers/stm32-st7789-gfx/include</code>.</li>
+  <li>Keep the default compiler options that put every function and data object in its own section (<code>-ffunction-sections -fdata-sections</code>) and discard unused sections at link time (<code>-Wl,--gc-sections</code>). They remove the fonts and icons you never use.</li>
+  <li>Save source files as UTF-8 (<b>Window</b>, <b>Preferences</b>, <b>General</b>, <b>Workspace</b>, <b>Text file encoding</b>) so strings such as <code>"25 °C"</code> reach the library as UTF-8.</li>
+</ol>
+<h3>Option B: single header</h3>
+<ol>
+  <li>Copy <code>single_header/lcd_gfx.h</code> to <code>Core/Inc</code>.</li>
+  <li>In exactly one source file, for example <code>Core/Src/gfx_impl.c</code>, write:
+<pre><code>#define GFX_IMPLEMENTATION
+#include "lcd_gfx.h"</code></pre></li>
+  <li>In every other file that draws, include <code>lcd_gfx.h</code> without the define.</li>
+  <li>Optional: define <code>GFX_WITHOUT_DEMO</code> and <code>GFX_WITHOUT_SELFTEST</code> in the project settings to leave those modules out. Define them for every file, so the declarations match.</li>
+</ol>
+
+<h2 id="port">Write the port</h2>
+<p>The library needs two functions, declared in <code>gfx_port.h</code>. You implement them once, in any source file.</p>
+<pre><code>void gfx_port_cmd(uint8_t command);   /* write a command byte  (A0 / D/C = 0) */
+void gfx_port_data(uint16_t data);    /* write a data word     (A0 / D/C = 1) */</code></pre>
+<div class="note"><b>Know what travels through gfx_port_data().</b> After CASET (0x2A) or RASET (0x2B) it carries four 8-bit parameters in the low byte. After RAMWR (0x2C) it carries one 16-bit RGB565 pixel per call. A 16-bit FMC port can ignore the difference. An SPI or 8-bit port must remember the last command and send one byte for parameters and two bytes, high byte first, for pixels.</div>
+
+<h3 id="port-fmc">FMC, 16-bit</h3>
+<figure class="diagram">
+  <img src="{{root}}img/fmc-connection.svg" width="760" height="470" alt="FMC wiring: 16 data lines, chip select, write and read strobes, and address line A0 wired to the controller D/CX pin" loading="lazy">
+  <figcaption>Wire <code>FMC_A0</code> to the controller's D/CX pin. A write at the bank base is a command; a write at base + 2 is data.</figcaption>
+</figure>
+<p>With a 16-bit memory width the FMC drives <code>FMC_A0</code> from address bit 1. A write to the bank base address therefore has A0 = 0 (command) and a write to base + 2 has A0 = 1 (data). In CubeMX choose the NOR/SRAM mode with a 16-bit data bus, enable the chip select and address line A0, and set the address setup and data setup times so the write cycle meets your panel's datasheet.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Chip select</th><th>Bank base address</th></tr></thead>
+  <tbody>
+    <tr><td><code>FMC_NE1</code></td><td><code>0x60000000</code></td></tr>
+    <tr><td><code>FMC_NE2</code></td><td><code>0x64000000</code></td></tr>
+    <tr><td><code>FMC_NE3</code></td><td><code>0x68000000</code></td></tr>
+    <tr><td><code>FMC_NE4</code></td><td><code>0x6C000000</code></td></tr>
+  </tbody>
+</table></div>
+<pre><code>#include "gfx_port.h"
+
+#define LCD_BASE  0x64000000u                        /* FMC_NE2, adjust to your chip select */
+#define LCD_REG   (*(volatile uint16_t *)(LCD_BASE))       /* A0 = 0: command */
+#define LCD_RAM   (*(volatile uint16_t *)(LCD_BASE + 2u))  /* A0 = 1: data    */
+
+void gfx_port_cmd(uint8_t command) { LCD_REG = command; }
+void gfx_port_data(uint16_t data)  { LCD_RAM = data;    }</code></pre>
+<p>If your project already has helper functions for these two accesses, call them instead. On the STM32F723E-DISCO, use the bank and the helpers that your board support code defines.</p>
+
+<h3 id="port-spi">SPI, 4-wire</h3>
+<p>A 4-wire SPI panel has a chip select, a data/command pin and 8-bit transfers. Track the last command so pixels go out as two bytes.</p>
+<pre><code>#include "gfx_port.h"
+
+extern void spi_write(const uint8_t *buf, uint16_t len);   /* your SPI transmit */
+#define LCD_DC_LOW()   HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_RESET)
+#define LCD_DC_HIGH()  HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_SET)
+#define LCD_CS_LOW()   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET)
+#define LCD_CS_HIGH()  HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET)
+
+static uint8_t last_cmd;
+
+void gfx_port_cmd(uint8_t command)
+{
+    last_cmd = command;
+    LCD_DC_LOW();
+    LCD_CS_LOW();
+    spi_write(&amp;command, 1);
+    LCD_CS_HIGH();
+}
+
+void gfx_port_data(uint16_t data)
+{
+    LCD_DC_HIGH();
+    LCD_CS_LOW();
+    if (last_cmd == 0x2C) {                 /* RAMWR: RGB565 pixel, high byte first */
+        uint8_t px[2] = { (uint8_t)(data &gt;&gt; 8), (uint8_t)data };
+        spi_write(px, 2);
+    } else {                                /* CASET / RASET: 8-bit parameter */
+        uint8_t p = (uint8_t)data;
+        spi_write(&amp;p, 1);
+    }
+    LCD_CS_HIGH();
+}</code></pre>
+<p>This version favours clarity. For speed, keep chip select low for the whole burst, use hardware SPI at the highest clock the panel accepts, and avoid HAL call overhead per word.</p>
+
+<h3 id="port-8bit">8-bit parallel bus</h3>
+<p>An 8080-style 8-bit bus has eight data lines, a write strobe and a D/C pin. The same rule applies: one byte for parameters, two bytes (high first) for pixels.</p>
+<pre><code>#include "gfx_port.h"
+
+static uint8_t last_cmd;
+
+static void bus_write8(uint8_t v)
+{
+    LCD_DATA_PORT_WRITE(v);   /* put v on D[7:0] */
+    LCD_WR_LOW();             /* the controller latches on the rising edge */
+    LCD_WR_HIGH();
+}
+
+void gfx_port_cmd(uint8_t command)
+{
+    last_cmd = command;
+    LCD_DC_LOW();
+    bus_write8(command);
+}
+
+void gfx_port_data(uint16_t data)
+{
+    LCD_DC_HIGH();
+    if (last_cmd == 0x2C) {
+        bus_write8((uint8_t)(data &gt;&gt; 8));
+        bus_write8((uint8_t)data);
+    } else {
+        bus_write8((uint8_t)data);
+    }
+}</code></pre>
+
+<h2 id="first">Draw the first screen</h2>
+<pre><code>#include "gfx_core.h"
+#include "gfx_shapes.h"
+#include "gfx_text.h"
+#include "gfx_widgets.h"
+#include "gfx_fonts.h"
+
+void ui_demo(void)
+{
+    gfx_set_theme(&amp;gfx_theme_dark);
+    gfx_fill_screen(gfx_theme-&gt;background);
+    gfx_widget_status_bar("Hello", 82, 1);
+    gfx_widget_ring(62, 110, 40, 9, 73, gfx_theme-&gt;accent, "73%");
+    gfx_text(120, 100, "CPU load", &amp;gfx_font_sans_16, gfx_theme-&gt;text, gfx_theme-&gt;background);
+}</code></pre>
+<p>To see everything the library can do, loop over the demo pages. Each call draws a full screen.</p>
+<pre><code>#include "gfx_demo.h"
+
+for (;;) {
+    for (int page = 0; page &lt; gfx_demo_page_count(); page++) {
+        gfx_demo_page(page);
+        HAL_Delay(3000);
+    }
+}</code></pre>
+
+<h2 id="verify">Check the panel with the self-test</h2>
+<p>Before you debug your own UI, run the nine bring-up patterns. Each makes one class of fault easy to see. The three levels of testing, from the PC to the board, are described in <a href="testing.html">Testing</a>.</p>
+<pre><code>#include "gfx_selftest.h"
+
+for (int page = 0; page &lt; gfx_selftest_page_count(); page++) {
+    gfx_selftest_page(page);
+    HAL_Delay(2000);
+}</code></pre>
+
+<h2 id="troubleshooting">Typical problems</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Symptom</th><th>Likely cause</th><th>What to do</th><th>Pattern that shows it</th></tr></thead>
+  <tbody>
+    <tr><td>Mirrored image: text reads backwards, or the picture is upside down</td><td>Memory access control (MADCTL, command <code>0x36</code>) has the column or row order bits set the wrong way for your module.</td><td>Flip the MX (<code>0x40</code>) or MY (<code>0x80</code>) bit in your init sequence.</td><td>Frame and corners (page 2), Text and icons (page 5)</td></tr>
+    <tr><td>Red and blue swapped</td><td>The RGB/BGR bit of MADCTL (<code>0x08</code>) does not match the panel, or the two bytes of a pixel are sent in the wrong order on SPI or an 8-bit bus.</td><td>Toggle the BGR bit in MADCTL. On SPI or 8-bit, send the high byte first.</td><td>Colour bars (page 0): the first bar must be red</td></tr>
+    <tr><td>Picture shifted, a strip of the wrong content at one edge, black rows</td><td>The controller RAM is 240 x 320 and some 240 x 240 modules show only part of it, starting at a row offset that depends on the orientation.</td><td>Choose the MADCTL orientation whose visible area starts at row 0. The library has no offset setting.</td><td>Frame and corners (page 2): the white frame must touch all four edges</td></tr>
+    <tr><td>Noise, snow, wrong colours, flicker</td><td>Bus timing too fast, a data line that is missing or shorted, or a wrong bus width in the FMC setup.</td><td>Lengthen the FMC address and data setup times, check every D line with the solid pages, and shorten the wires.</td><td>Solid red, green, blue (pages 6 to 8): each must be one flat colour</td></tr>
+    <tr><td>Colours look faded or banded</td><td>The pixel format is not set to 16 bits per pixel (COLMOD <code>0x3A</code> = <code>0x55</code>), or some data bits are not connected.</td><td>Send COLMOD with 16-bit RGB565 in the init sequence and check the wiring.</td><td>Gray ramp (page 1): 16 clean steps</td></tr>
+    <tr><td>Circles look like ellipses, lines are skewed</td><td>The row or column window is wrong, or the panel is configured for a different resolution.</td><td>Check CASET and RASET end addresses (239) and the panel configuration.</td><td>Grid, cross and circle (page 3)</td></tr>
+    <tr><td>Accented characters appear as <code>?</code> or as two odd glyphs</td><td>The source file is not saved as UTF-8, or the character is above U+00FF.</td><td>Save the file as UTF-8. Only code points up to U+00FF exist in the fonts.</td><td>Text and icons (page 5)</td></tr>
+    <tr><td>Nothing appears at all</td><td>The controller is not initialised, reset is held low, or the backlight is off.</td><td>Check reset and backlight pins and run your init sequence before the first draw call.</td><td>Any solid page</td></tr>
+  </tbody>
+</table></div>
+<p>The exact bit values depend on your module, so confirm them in the controller datasheet and in the module vendor's init code.</p>
+
+<h2 id="limits">Known limits</h2>
+<ul>
+  <li><b>No rotation.</b> The library draws in the controller's native 240 x 240 orientation. Rotate the image with the MADCTL bits in your init code if you need another orientation.</li>
+  <li><b>Font data is about 141 KB of flash</b> for all six fonts, and 16 KB for the 32 icons. The linker removes what you do not reference, as long as section garbage collection is on.</li>
+  <li><b>Latin-1 only.</b> Fonts cover U+0020 to U+007E and U+00A0 to U+00FF. Other code points are drawn as <code>?</code>. The 48 px bold font holds only digits, the colon and the degree sign.</li>
+  <li><b>Fixed screen size.</b> <code>GFX_WIDTH</code> and <code>GFX_HEIGHT</code> are 240. There is no run-time offset or resolution setting.</li>
+  <li><b>Write-only.</b> Nothing reads pixels back from the controller.</li>
+  <li><b>Polygons</b> have at most 16 vertices.</li>
+  <li><b>No DMA streaming</b> is built in. The burst loop calls <code>gfx_port_data()</code> once per pixel; you can make your port faster as you see fit.</li>
+</ul>
